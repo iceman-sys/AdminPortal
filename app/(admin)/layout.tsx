@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: {
-    template: "%s · OrthoticHub Admin",
-    default: "OrthoticHub Admin",
+    template: "%s · OrthoticHub Clinician Portal",
+    default: "OrthoticHub Clinician Portal",
   },
 };
 
@@ -16,7 +16,7 @@ export default function AdminLayout({
   return (
     <>
       <AdminNav />
-      <main style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 48px" }}>{children}</main>
+      <main className="app-main">{children}</main>
     </>
   );
 }

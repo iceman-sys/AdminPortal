@@ -1,16 +1,17 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
+import { NAV } from "@/lib/labels";
 
 const links = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/assessments", label: "Assessments" },
-  { href: "/recommendations", label: "Recommendations" },
-  { href: "/orders", label: "Orders" },
+  { href: "/dashboard", label: NAV.home },
+  { href: "/assessments", label: NAV.intakes },
+  { href: "/recommendations", label: NAV.matches },
+  { href: "/orders", label: NAV.purchases },
 ];
 
 export function AdminNav() {
@@ -42,21 +43,14 @@ export function AdminNav() {
   return (
     <header className="admin-header">
       <div className="admin-header__left">
-        <Link href="/dashboard" prefetch style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "inherit" }}>
-          <Image src="/logo.png" alt="OrthoticHub" width={120} height={36} style={{ height: 36, width: "auto" }} />
-          <span style={{ fontSize: 15, color: "#64748b", fontWeight: 500 }}>Admin</span>
-        </Link>
+        <BrandLogo variant="header" linked showSubtitle />
         <nav className="admin-header__nav" aria-label="Main">
           {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               prefetch
-              style={{
-                fontWeight: isActive(link.href) ? 600 : 400,
-                color: isActive(link.href) ? "#3b82f6" : "#64748b",
-                textDecoration: "none",
-              }}
+              className={`nav-link${isActive(link.href) ? " nav-link--active" : ""}`}
             >
               {link.label}
             </Link>
@@ -64,13 +58,9 @@ export function AdminNav() {
           <Link
             href="/search"
             prefetch
-            style={{
-              fontWeight: searchActive ? 600 : 400,
-              color: searchActive ? "#3b82f6" : "#64748b",
-              textDecoration: "none",
-            }}
+            className={`nav-link${searchActive ? " nav-link--active" : ""}`}
           >
-            Search
+            {NAV.search}
           </Link>
         </nav>
       </div>
@@ -79,16 +69,15 @@ export function AdminNav() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Email, user id, Stripe PI…"
+            placeholder="Patient email"
             className="input"
-            style={{ width: 280 }}
-            aria-label="Global search"
+            aria-label="Find patient by email"
           />
-          <button type="submit" className="button" style={{ padding: "10px 12px" }}>
-            Search
+          <button type="submit" className="btn-secondary">
+            Find
           </button>
         </form>
-        <button type="button" onClick={signOut} className="button" style={{ padding: "10px 12px", fontSize: 13 }}>
+        <button type="button" onClick={signOut} className="btn-ghost">
           Sign out
         </button>
       </div>

@@ -17,7 +17,7 @@ export function CopyButton({
       setCopied(true);
       setTimeout(() => setCopied(false), 900);
     } catch {
-      // no-op: clipboard may be blocked in some environments
+      // clipboard may be blocked in some environments
     }
   }
 
@@ -26,19 +26,16 @@ export function CopyButton({
       type="button"
       onClick={onCopy}
       title={value}
+      className={`btn-secondary${copied ? "" : ""}`}
       style={{
-        border: "1px solid var(--border)",
-        background: "var(--surface)",
-        padding: "6px 10px",
-        borderRadius: 10,
-        cursor: "pointer",
+        padding: "8px 12px",
         fontSize: 12,
-        fontWeight: 700,
-        color: copied ? "#166534" : "var(--text)",
+        color: copied ? "var(--success)" : undefined,
+        borderColor: copied ? "#bbf7d0" : undefined,
+        background: copied ? "#f0fdf4" : undefined,
       }}
     >
-      {copied ? "Copied" : label}
+      {copied ? "Copied ✓" : label}
     </button>
   );
 }
-

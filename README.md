@@ -52,10 +52,11 @@ Open http://localhost:3001
 |-------|---------|
 | `/dashboard` | KPIs, 24h funnel, recent orders |
 | `/assessments` | Intake list |
+| `/assessments/[id]` | Intake detail + **foot scans** for assessment |
 | `/recommendations` | Rules outcomes |
 | `/orders` | Commerce |
 | `/search` | Global lookup |
-| `/users/[id]` | Per-user timeline |
+| `/users/[id]` | Per-user timeline + **foot scan gallery** |
 
 ## Out of scope (intentional)
 

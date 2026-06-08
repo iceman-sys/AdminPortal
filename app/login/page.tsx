@@ -1,8 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { FormEvent, Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { BrandLogo } from "@/components/BrandLogo";
+import { FormField } from "@/components/FormField";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 
 export default function LoginPage() {
@@ -22,7 +23,7 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(
     errorParam === "not_allowed"
-      ? "This account is not authorized for the admin console."
+      ? "This account is not authorized for the clinician portal."
       : null
   );
   const [loading, setLoading] = useState(false);
@@ -47,53 +48,52 @@ function LoginForm() {
 
   return (
     <div className="login-page">
-      <form onSubmit={onSubmit} className="card login-form">
-        <Image
-          src="/logo.png"
-          alt="OrthoticHub"
-          width={200}
-          height={56}
-          style={{ width: "100%", maxWidth: 200, height: "auto", marginBottom: 8 }}
-          priority
-        />
-        <h1 style={{ marginTop: 0, fontSize: 20, fontWeight: 600 }}>Staff console</h1>
-        <p style={{ color: "#64748b", fontSize: 14, marginBottom: 20 }}>
-          Sign in with an allowlisted staff email. Read-only access to pipeline
-          data.
-        </p>
-        {error && (
-          <p style={{ color: "#dc2626", fontSize: 14, marginBottom: 12 }}>
-            {error}
+      <aside className="login-page__brand" aria-hidden={false}>
+        <BrandLogo variant="login" />
+      </aside>
+
+      <div className="login-page__form-wrap">
+        <form onSubmit={onSubmit} className="card login-form">
+          <div className="login-form__mobile-logo">
+            <BrandLogo variant="mark" />
+          </div>
+
+          <h1 className="login-form__title">Welcome back</h1>
+          <p className="login-form__subtitle">
+            Sign in to review patient foot scans, orthotic recommendations, and in-app purchases.
           </p>
-        )}
-        <label style={{ display: "block", marginBottom: 12 }}>
-          <span className="muted" style={{ fontSize: 13 }}>
-            Email
-          </span>
-          <input
+
+          {error ? <div className="login-form__error" role="alert">{error}</div> : null}
+
+          <FormField
+            label="Staff email"
             type="email"
+            name="email"
             required
+            autoComplete="email"
+            placeholder="you@yourclinic.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="input"
+            icon="✉"
           />
-        </label>
-        <label style={{ display: "block", marginBottom: 16 }}>
-          <span className="muted" style={{ fontSize: 13 }}>
-            Password
-          </span>
-          <input
+
+          <FormField
+            label="Password"
             type="password"
+            name="password"
             required
+            autoComplete="current-password"
+            placeholder="Your password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="input"
+            icon="🔒"
           />
-        </label>
-        <button type="submit" disabled={loading} className="btn-primary">
-          {loading ? "Signing in…" : "Sign in"}
-        </button>
-      </form>
+
+          <button type="submit" disabled={loading} className="btn-primary">
+            {loading ? "Signing in…" : "Sign in to portal"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

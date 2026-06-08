@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { Code, shortId } from "@/components/ui";
 
-export function UserLink({ userId }: { userId: string }) {
+export function UserLink({ userId, compact = false }: { userId: string; compact?: boolean }) {
   return (
-    <Link href={`/users/${userId}`} prefetch className="user-link">
-      <Code>{shortId(userId)}</Code>
+    <Link href={`/users/${userId}`} prefetch className="user-link" style={{ fontWeight: 600, fontSize: 13 }}>
+      {compact ? "Case →" : "Open patient case →"}
     </Link>
   );
 }

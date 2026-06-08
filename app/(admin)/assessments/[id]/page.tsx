@@ -8,8 +8,10 @@ import { DetailGrid } from "@/components/DetailGrid";
 import { DetailHeader } from "@/components/DetailHeader";
 import { SectionCard } from "@/components/SectionCard";
 import { UserLink } from "@/components/UserLink";
+import { FootScanGallery } from "@/components/FootScanGallery";
 import { Badge, Code, ErrorBlock, formatDate, shortId } from "@/components/ui";
 import type { Metadata } from "next";
+import { attachSignedImageUrls, fetchFootScansForAssessment } from "@/lib/foot-scans";
 
 export const revalidate = ADMIN_REVALIDATE_SECONDS;
 
@@ -34,6 +36,14 @@ export default async function AssessmentDetailPage({ params }: { params: { id: s
     .eq("assessment_id", id)
     .order("created_at", { ascending: false })
     .limit(20);
+
+  let footScans: Awaited<ReturnType<typeof attachSignedImageUrls>> = [];
+  try {
+    const rows = await fetchFootScansForAssessment(supabase, id);
+    footScans = await attachSignedImageUrls(supabase, rows);
+  } catch {
+    footScans = [];
+  }
 
   return (
     <div>
@@ -92,6 +102,13 @@ export default async function AssessmentDetailPage({ params }: { params: { id: s
               No recommendations for this assessment yet.
             </p>
           )}
+        </SectionCard>
+
+        <SectionCard title="Foot scans">
+          <FootScanGallery
+            scans={footScans}
+            emptyMessage="No foot scans linked to this assessment (user may have skipped scan)."
+          />
         </SectionCard>
       </DetailGrid>
 

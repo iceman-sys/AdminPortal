@@ -6,27 +6,16 @@ export function PageHeader({
   actions,
 }: {
   title: string;
-  subtitle?: string;
+  subtitle?: React.ReactNode;
   actions?: React.ReactNode;
 }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        flexWrap: "wrap",
-        gap: 12,
-        alignItems: "flex-end",
-        justifyContent: "space-between",
-        marginBottom: 16,
-      }}
-    >
+    <div className="page-header">
       <div>
-        <h1 style={{ margin: "0 0 6px", fontSize: 26 }}>{title}</h1>
-        {subtitle ? (
-          <p style={{ margin: 0, color: "var(--muted)", fontSize: 14 }}>{subtitle}</p>
-        ) : null}
+        <h1 className="page-title">{title}</h1>
+        {subtitle ? <p className="page-subtitle">{subtitle}</p> : null}
       </div>
-      {actions ? <div style={{ display: "flex", gap: 10, alignItems: "center" }}>{actions}</div> : null}
+      {actions ? <div className="page-header__actions">{actions}</div> : null}
     </div>
   );
 }
@@ -37,17 +26,17 @@ export function Card({ children }: { children: React.ReactNode }) {
 
 export function EmptyState({ message }: { message: string }) {
   return (
-    <div className="card" style={{ color: "var(--muted)" }}>
-      {message}
+    <div className="card empty-state">
+      <p style={{ margin: 0, color: "var(--muted)", fontSize: 15, lineHeight: 1.55 }}>{message}</p>
     </div>
   );
 }
 
 export function ErrorBlock({ message }: { message: string }) {
   return (
-    <div className="card" style={{ color: "var(--danger)" }}>
-      <strong>Error loading data</strong>
-      <p style={{ marginBottom: 0 }}>{message}</p>
+    <div className="card login-form__error" role="alert">
+      <strong style={{ display: "block", marginBottom: 4 }}>Something went wrong</strong>
+      <span>{message}</span>
     </div>
   );
 }
@@ -71,13 +60,28 @@ export function Badge({
 }
 
 export function Code({ children }: { children: React.ReactNode }) {
-  return <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>{children}</code>;
+  return (
+    <code
+      style={{
+        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+        fontSize: "0.92em",
+        padding: "2px 6px",
+        background: "var(--bg-subtle)",
+        borderRadius: 6,
+      }}
+    >
+      {children}
+    </code>
+  );
 }
 
 export function formatDate(iso: string | null | undefined) {
   if (!iso) return "—";
   try {
-    return new Date(iso).toLocaleString();
+    return new Date(iso).toLocaleString(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
   } catch {
     return iso;
   }
@@ -92,9 +96,10 @@ export function JsonViewer({ value }: { value: unknown }) {
     <pre
       style={{
         marginTop: 12,
-        padding: 12,
-        background: "#f8fafc",
-        borderRadius: 8,
+        padding: 14,
+        background: "var(--surface)",
+        borderRadius: "var(--radius-sm)",
+        border: "1px solid var(--border)",
         overflow: "auto",
         fontSize: 12,
       }}
@@ -112,20 +117,8 @@ export function PillLink({
   children: React.ReactNode;
 }) {
   return (
-    <Link
-      href={href}
-      style={{
-        padding: "8px 12px",
-        borderRadius: 999,
-        border: "1px solid var(--border)",
-        background: "var(--surface)",
-        color: "var(--text)",
-        fontSize: 13,
-        fontWeight: 600,
-      }}
-    >
+    <Link href={href} className="btn-secondary" style={{ borderRadius: "var(--radius-full)" }}>
       {children}
     </Link>
   );
 }
-

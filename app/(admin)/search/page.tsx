@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/server";
+import { findUserByEmail } from "@/lib/patients";
 import { ADMIN_REVALIDATE_SECONDS } from "@/lib/admin-cache";
 import { orderStatusTone } from "@/lib/order-status";
 import { getString } from "@/lib/query";
@@ -11,7 +12,7 @@ import type { Metadata } from "next";
 
 export const revalidate = ADMIN_REVALIDATE_SECONDS;
 
-export const metadata: Metadata = { title: "Search" };
+export const metadata: Metadata = { title: "Find patient" };
 
 function looksLikeUuid(s: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
@@ -30,10 +31,10 @@ export default async function SearchPage({
     return (
       <div>
         <PageHeader
-          title="Search"
-          subtitle="Use the search bar in the header for email, user id, record ids, or Stripe PaymentIntent (pi_…)."
+          title="Find a patient"
+          subtitle="Enter a patient email in the search bar above, or search by record ID if you have one from support."
         />
-        <EmptyState message="Enter a search term in the header, then press Search." />
+        <EmptyState message="Enter a patient email address in the header search bar, then press Find." />
       </div>
     );
   }
@@ -166,26 +167,18 @@ export default async function SearchPage({
   }
 
   if (qRaw.includes("@")) {
-    const { data: profiles, error } = await supabase
-      .from("profiles")
-      .select("id, email, full_name, created_at")
-      .ilike("email", qRaw)
-      .limit(1);
-    if (!error && profiles?.length) {
-      const p = profiles[0];
+    const authUser = await findUserByEmail(supabase, qRaw);
+    if (authUser) {
       return (
         <div>
           {header}
-          <SectionCard title="Profile">
-            <Badge>{p.email}</Badge>
-            <div className="meta-list" style={{ marginTop: 10 }}>
-              <div>Name: {p.full_name ?? "—"}</div>
-              <div>
-                user_id: <Code>{p.id}</Code>
-              </div>
-            </div>
-            <Link href={`/users/${p.id}`} prefetch className="link-back" style={{ display: "inline-block", marginTop: 12 }}>
-              Open case view →
+          <SectionCard title="Patient found">
+            <div style={{ fontSize: 18, fontWeight: 700 }}>{authUser.user_metadata?.full_name ?? authUser.email}</div>
+            <p className="muted" style={{ margin: "8px 0 0", fontSize: 14 }}>
+              {authUser.email}
+            </p>
+            <Link href={`/users/${authUser.id}`} prefetch className="btn-primary" style={{ display: "inline-flex", marginTop: 16 }}>
+              Open patient case →
             </Link>
           </SectionCard>
         </div>
@@ -221,7 +214,7 @@ export default async function SearchPage({
     return (
       <div>
         {header}
-        <EmptyState message="Try a full UUID, user_id prefix, email, or Stripe PI (pi_…)." />
+        <EmptyState message="No patient found. Try the full email address, or contact support if you need help locating a case." />
       </div>
     );
   }

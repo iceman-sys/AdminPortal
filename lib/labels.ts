@@ -14,17 +14,41 @@ const ACTIVITY: Record<string, string> = {
 };
 
 const CATEGORY: Record<string, string> = {
-  stability: "Stability",
-  pressure: "Pressure relief",
-  sport: "Sport",
-  work: "Work",
-  diabetic: "Diabetic",
-  dress: "Dress",
-  hallux: "Hallux",
-  achilles: "Achilles",
-  plantar_fasciitis: "Plantar fasciitis",
-  bunion: "Bunion",
+  stability: "Stability orthotic",
+  pressure: "Pressure relief orthotic",
+  sport: "Sport orthotic",
+  work: "Work orthotic",
+  diabetic: "Diabetic foot orthotic",
+  dress: "Dress orthotic",
+  hallux: "Hallux orthotic",
+  achilles: "Achilles support orthotic",
+  plantar_fasciitis: "Plantar fasciitis orthotic",
+  bunion: "Bunion orthotic",
 };
+
+const SKU: Record<string, string> = {
+  "ORTH-STABILITY-001": "Stability — standard",
+  "ORTH-PRESSURE-001": "Pressure relief — standard",
+  "ORTH-SPORT-001": "Sport — performance",
+  "ORTH-WORK-001": "Work — all-day support",
+  "ORTH-DIABETIC-001": "Diabetic — protective",
+  "ORTH-DRESS-001": "Dress — slim profile",
+};
+
+const CONFIDENCE: Record<string, string> = {
+  high: "High confidence",
+  medium: "Medium confidence",
+  low: "Low confidence",
+};
+
+/** Clinician-facing navigation labels (routes unchanged). */
+export const NAV = {
+  home: "Home",
+  intakes: "Patient intakes",
+  matches: "Orthotic matches",
+  purchases: "Purchases",
+  search: "Find patient",
+} as const;
 
 export function labelFootType(value: string | null | undefined) {
   if (!value) return "—";
@@ -41,6 +65,32 @@ export function labelCategory(value: string | null | undefined) {
   return CATEGORY[value] ?? value.replaceAll("_", " ");
 }
 
+export function labelProductSku(value: string | null | undefined) {
+  if (!value) return "—";
+  return SKU[value] ?? value;
+}
+
+export function labelConfidence(value: string | null | undefined) {
+  if (!value) return null;
+  return CONFIDENCE[value] ?? `${value.charAt(0).toUpperCase()}${value.slice(1)} confidence`;
+}
+
 export function labelOrderStatus(value: string) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
+  switch (value) {
+    case "paid":
+      return "Paid";
+    case "pending":
+      return "Payment pending";
+    case "failed":
+      return "Payment failed";
+    case "canceled":
+      return "Canceled";
+    default:
+      return value.charAt(0).toUpperCase() + value.slice(1);
+  }
+}
+
+export function labelPainZones(zones: string[] | null | undefined): string {
+  if (!zones?.length) return "None reported";
+  return zones.map((z) => z.replaceAll("_", " ")).join(", ");
 }

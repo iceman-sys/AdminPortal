@@ -6,6 +6,12 @@ import type { RecommendationRow } from "@/lib/types";
 import Link from "next/link";
 import { clamp, getInt, getString } from "@/lib/query";
 import { FilterChips, type FilterChip } from "@/components/FilterChips";
+import {
+  FilterField,
+  FilterSearchInput,
+  FilterSelect,
+  ListFilterPanel,
+} from "@/components/ListFilterPanel";
 import { Pagination } from "@/components/Pagination";
 import { UserLink } from "@/components/UserLink";
 import { Badge, Code, EmptyState, ErrorBlock, PageHeader, formatDate, shortId } from "@/components/ui";
@@ -13,7 +19,20 @@ import type { Metadata } from "next";
 
 export const revalidate = ADMIN_REVALIDATE_SECONDS;
 
-export const metadata: Metadata = { title: "Recommendations" };
+export const metadata: Metadata = { title: "Orthotic matches" };
+
+const MATCH_CATEGORIES = [
+  "stability",
+  "pressure",
+  "sport",
+  "work",
+  "diabetic",
+  "dress",
+  "hallux",
+  "achilles",
+  "plantar_fasciitis",
+  "bunion",
+] as const;
 
 export default async function RecommendationsPage({
   searchParams,
@@ -51,36 +70,44 @@ export default async function RecommendationsPage({
   if (q) chips.push({ label: `Search: ${q}`, clearHref: `/recommendations${listQuery({ referred, category })}` });
   if (referred === "yes") chips.push({ label: "Refer-out", clearHref: `/recommendations${listQuery({ q, category })}` });
   if (referred === "no") chips.push({ label: "Matched", clearHref: `/recommendations${listQuery({ q, category })}` });
-  if (category) chips.push({ label: `Category: ${category}`, clearHref: `/recommendations${listQuery({ q, referred })}` });
+  if (category) chips.push({ label: `Category: ${labelCategory(category)}`, clearHref: `/recommendations${listQuery({ q, referred })}` });
+
+  const hasFilters = Boolean(q || referred || category);
 
   return (
     <div>
       <PageHeader
-        title="Recommendations"
-        subtitle="Read-only outcomes from the rules engine."
-        actions={
-          <form action="/recommendations" className="list-toolbar">
-            <input name="q" defaultValue={q} placeholder="User / assessment / id…" className="input" style={{ width: 220 }} />
-            <select name="referred" defaultValue={referred} className="input">
-              <option value="">All outcomes</option>
-              <option value="no">Matched</option>
-              <option value="yes">Refer-out</option>
-            </select>
-            <select name="category" defaultValue={category} className="input">
-              <option value="">All categories</option>
-              <option value="stability">stability</option>
-              <option value="pressure">pressure</option>
-              <option value="sport">sport</option>
-              <option value="work">work</option>
-              <option value="diabetic">diabetic</option>
-              <option value="dress">dress</option>
-            </select>
-            <button type="submit" className="button">
-              Apply
-            </button>
-          </form>
-        }
+        title="Orthotic matches"
+        subtitle="What the app recommended for each patient — matched orthotic or podiatrist referral."
       />
+
+      <ListFilterPanel action="/recommendations" clearHref={hasFilters ? "/recommendations" : undefined}>
+        <FilterField label="Search" hint="Patient ID, intake ID, or record prefix" wide>
+          <FilterSearchInput
+            name="q"
+            defaultValue={q}
+            placeholder="e.g. patient UUID prefix…"
+            aria-label="Search orthotic matches"
+          />
+        </FilterField>
+        <FilterField label="Outcome">
+          <FilterSelect name="referred" defaultValue={referred} aria-label="Filter by outcome">
+            <option value="">All outcomes</option>
+            <option value="no">Matched to product</option>
+            <option value="yes">Referred to podiatrist</option>
+          </FilterSelect>
+        </FilterField>
+        <FilterField label="Orthotic type">
+          <FilterSelect name="category" defaultValue={category} aria-label="Filter by orthotic type">
+            <option value="">All types</option>
+            {MATCH_CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>
+                {labelCategory(cat)}
+              </option>
+            ))}
+          </FilterSelect>
+        </FilterField>
+      </ListFilterPanel>
 
       <FilterChips chips={chips} clearAllHref="/recommendations" />
 
@@ -92,17 +119,17 @@ export default async function RecommendationsPage({
       />
 
       {rows.length === 0 ? (
-        <EmptyState message={q || referred || category ? "No results." : "No recommendations yet."} />
+        <EmptyState message={hasFilters ? "No matches for these filters." : "No orthotic matches yet."} />
       ) : (
         <table>
           <thead>
             <tr>
               <th scope="col">Created</th>
               <th scope="col">Outcome</th>
-              <th scope="col">User</th>
-              <th scope="col">Assessment</th>
+              <th scope="col">Patient</th>
+              <th scope="col">Intake</th>
               <th scope="col">Engine</th>
-              <th scope="col">ID</th>
+              <th scope="col">Record</th>
             </tr>
           </thead>
           <tbody>
@@ -124,7 +151,7 @@ export default async function RecommendationsPage({
                 </td>
                 <td>
                   <Link href={`/assessments/${row.assessment_id}`} prefetch>
-                    <Code>{shortId(row.assessment_id)}</Code>
+                    View intake →
                   </Link>
                 </td>
                 <td className="muted" style={{ fontSize: 13 }}>

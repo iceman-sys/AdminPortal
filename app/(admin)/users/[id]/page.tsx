@@ -1,136 +1,100 @@
-import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/server";
 import { ADMIN_REVALIDATE_SECONDS } from "@/lib/admin-cache";
-import { labelCategory } from "@/lib/labels";
-import { orderStatusTone } from "@/lib/order-status";
-import { Breadcrumb } from "@/components/Breadcrumb";
-import { CopyButton } from "@/components/CopyButton";
-import { DetailHeader } from "@/components/DetailHeader";
+import { deriveCaseStatus } from "@/lib/case-status";
+import { getPatientProfile } from "@/lib/patients";
+import { FootScanGallery } from "@/components/FootScanGallery";
+import { IntakeSummary } from "@/components/IntakeSummary";
+import { PatientCaseHeader } from "@/components/PatientCaseHeader";
+import { PatientCaseOverview } from "@/components/PatientCaseOverview";
 import { SectionCard } from "@/components/SectionCard";
-import { Badge, Code, ErrorBlock, formatDate, shortId } from "@/components/ui";
+import { TechnicalDetails } from "@/components/TechnicalDetails";
+import { ErrorBlock } from "@/components/ui";
 import type { Metadata } from "next";
+import { attachSignedImageUrls, fetchFootScansForUser } from "@/lib/foot-scans";
 
 export const revalidate = ADMIN_REVALIDATE_SECONDS;
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  return { title: `Case ${shortId(params.id)}` };
+  const supabase = createAdminClient();
+  const patient = await getPatientProfile(supabase, params.id);
+  const title = patient.fullName ?? patient.email ?? "Patient case";
+  return { title };
 }
 
 export default async function UserCasePage({ params }: { params: { id: string } }) {
   const supabase = createAdminClient();
   const userId = params.id;
 
-  const [{ data: assessments, error: aErr }, { data: recs, error: rErr }, { data: orders, error: oErr }] =
-    await Promise.all([
-      supabase
-        .from("assessments")
-        .select("id, created_at, foot_type, daily_activity_level")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(50),
-      supabase
-        .from("recommendations")
-        .select("id, created_at, assessment_id, was_referred_out, primary_category, confidence")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(50),
-      supabase
-        .from("orders")
-        .select("id, created_at, status, product_sku, stripe_payment_intent_id, recommendation_id")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(50),
-    ]);
+  const [
+    patient,
+    { data: assessments, error: aErr },
+    { data: recs, error: rErr },
+    { data: orders, error: oErr },
+  ] = await Promise.all([
+    getPatientProfile(supabase, userId),
+    supabase
+      .from("assessments")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1),
+    supabase
+      .from("recommendations")
+      .select("id, created_at, assessment_id, was_referred_out, primary_category, confidence, refer_out_reason")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1),
+    supabase
+      .from("orders")
+      .select("id, created_at, status, product_sku, amount_cents, currency, recommendation_id")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1),
+  ]);
+
+  let footScans: Awaited<ReturnType<typeof attachSignedImageUrls>> = [];
+  try {
+    const rows = await fetchFootScansForUser(supabase, userId);
+    footScans = await attachSignedImageUrls(supabase, rows);
+  } catch {
+    footScans = [];
+  }
 
   if (aErr) return <ErrorBlock message={aErr.message} />;
   if (rErr) return <ErrorBlock message={rErr.message} />;
   if (oErr) return <ErrorBlock message={oErr.message} />;
 
-  const a = assessments ?? [];
-  const r = recs ?? [];
-  const o = orders ?? [];
+  const latestAssessment = assessments?.[0] ?? null;
+  const latestRec = recs?.[0] ?? null;
+  const latestOrder = orders?.[0] ?? null;
+
+  const hasPaidOrder = latestOrder?.status === "paid";
+  const caseStatus = deriveCaseStatus({
+    hasPaidOrder,
+    hasPendingOrder: latestOrder?.status === "pending",
+    wasReferredOut: latestRec?.was_referred_out ?? false,
+    footScanCount: footScans.length,
+    hasAssessment: Boolean(latestAssessment),
+  });
 
   return (
     <div>
-      <Breadcrumb items={[{ label: "Dashboard", href: "/dashboard" }, { label: `Case ${shortId(userId)}` }]} />
-      <DetailHeader
-        title="Case view"
-        subtitle={`${a.length} assessments · ${r.length} recommendations · ${o.length} orders`}
-        backHref="/dashboard"
-        backLabel="Dashboard"
-        entityId={userId}
-        copyLabel="Copy user_id"
-      />
+      <PatientCaseHeader patient={patient} caseStatus={caseStatus} />
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
-        <SectionCard title="Assessments" action={{ href: `/assessments?q=${encodeURIComponent(userId)}`, label: "View in list →" }}>
-          {a.length ? (
-            <div className="entity-list">
-              {a.map((row) => (
-                <Link key={row.id} href={`/assessments/${row.id}`} prefetch>
-                  <Code>{shortId(row.id)}</Code>
-                  <span className="muted" style={{ fontSize: 13 }}>
-                    {formatDate(row.created_at)}
-                  </span>
-                  <Badge>{row.foot_type ?? "—"}</Badge>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <p className="muted" style={{ margin: 0, fontSize: 14 }}>
-              No assessments.
-            </p>
-          )}
+      <div style={{ display: "grid", gap: 20 }}>
+        <PatientCaseOverview recommendation={latestRec} order={latestOrder} />
+
+        <SectionCard title="Foot scans">
+          <p className="muted" style={{ margin: "0 0 14px", fontSize: 14, lineHeight: 1.5 }}>
+            Review foot images below. When a 3D scan is available, use <strong>Download 3D scan for lab</strong> to
+            import into your lab software.
+          </p>
+          <FootScanGallery scans={footScans} />
         </SectionCard>
 
-        <SectionCard
-          title="Recommendations"
-          action={{ href: `/recommendations?q=${encodeURIComponent(userId)}`, label: "View in list →" }}
-        >
-          {r.length ? (
-            <div className="entity-list">
-              {r.map((row) => (
-                <Link key={row.id} href={`/recommendations/${row.id}`} prefetch>
-                  <Badge tone={row.was_referred_out ? "danger" : "default"}>
-                    {row.was_referred_out ? "Refer-out" : labelCategory(row.primary_category)}
-                  </Badge>
-                  <span className="muted" style={{ fontSize: 13 }}>
-                    {formatDate(row.created_at)}
-                  </span>
-                  <Code>{shortId(row.id)}</Code>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <p className="muted" style={{ margin: 0, fontSize: 14 }}>
-              No recommendations.
-            </p>
-          )}
-        </SectionCard>
+        <IntakeSummary assessment={latestAssessment} />
 
-        <SectionCard title="Orders" action={{ href: `/orders?q=${encodeURIComponent(userId)}`, label: "View in list →" }}>
-          {o.length ? (
-            <div className="entity-list">
-              {o.map((row) => (
-                <Link key={row.id} href={`/orders/${row.id}`} prefetch>
-                  <Badge tone={orderStatusTone(row.status)}>{row.status}</Badge>
-                  <span className="muted" style={{ fontSize: 13 }}>
-                    {formatDate(row.created_at)}
-                  </span>
-                  <Badge>{row.product_sku}</Badge>
-                  <Code>{shortId(row.id)}</Code>
-                  {row.stripe_payment_intent_id ? (
-                    <CopyButton value={row.stripe_payment_intent_id} label="Copy PI" />
-                  ) : null}
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <p className="muted" style={{ margin: 0, fontSize: 14 }}>
-              No orders.
-            </p>
-          )}
-        </SectionCard>
+        <TechnicalDetails userId={userId} />
       </div>
     </div>
   );

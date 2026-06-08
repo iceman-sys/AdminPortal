@@ -6,14 +6,15 @@ import type { AssessmentRow } from "@/lib/types";
 import Link from "next/link";
 import { clamp, getInt, getString } from "@/lib/query";
 import { FilterChips } from "@/components/FilterChips";
+import { FilterField, FilterSearchInput, ListFilterPanel } from "@/components/ListFilterPanel";
 import { Pagination } from "@/components/Pagination";
 import { UserLink } from "@/components/UserLink";
-import { Code, EmptyState, ErrorBlock, PageHeader, formatDate, shortId } from "@/components/ui";
+import { Code, EmptyState, ErrorBlock, PageHeader, formatDate } from "@/components/ui";
 import type { Metadata } from "next";
 
 export const revalidate = ADMIN_REVALIDATE_SECONDS;
 
-export const metadata: Metadata = { title: "Assessments" };
+export const metadata: Metadata = { title: "Patient intakes" };
 
 export default async function AssessmentsPage({
   searchParams,
@@ -37,7 +38,7 @@ export default async function AssessmentsPage({
 
   const { data, error } = await query;
   if (error) {
-    return <ErrorBlock message={error.message + (q ? " (tip: use a user_id/id prefix)" : "")} />;
+    return <ErrorBlock message={error.message + (q ? " (tip: use a patient or intake ID prefix)" : "")} />;
   }
 
   const rows = (data ?? []) as AssessmentRow[];
@@ -47,17 +48,24 @@ export default async function AssessmentsPage({
   return (
     <div>
       <PageHeader
-        title="Assessments"
-        subtitle="Read-only intake records. Search by user id or assessment id prefix."
-        actions={
-          <form action="/assessments" className="list-toolbar">
-            <input name="q" defaultValue={q} placeholder="Search user_id / id…" className="input" style={{ width: 280 }} />
-            <button type="submit" className="button">
-              Apply
-            </button>
-          </form>
-        }
+        title="Patient intakes"
+        subtitle="Questionnaire answers submitted through the app. Open a patient case for foot scans and purchases."
       />
+
+      <ListFilterPanel action="/assessments" layout="single" clearHref={q ? "/assessments" : undefined}>
+        <FilterField
+          label="Search intakes"
+          hint="Patient ID or intake record prefix — for email search use Find patient in the header"
+          wide
+        >
+          <FilterSearchInput
+            name="q"
+            defaultValue={q}
+            placeholder="Search by patient or intake ID…"
+            aria-label="Search patient intakes"
+          />
+        </FilterField>
+      </ListFilterPanel>
 
       <FilterChips chips={chips} clearAllHref="/assessments" />
 
@@ -69,17 +77,17 @@ export default async function AssessmentsPage({
       />
 
       {rows.length === 0 ? (
-        <EmptyState message={q ? "No results." : "No assessments yet."} />
+        <EmptyState message={q ? "No intakes match this search." : "No patient intakes yet."} />
       ) : (
         <table>
           <thead>
             <tr>
-              <th scope="col">Created</th>
-              <th scope="col">User</th>
+              <th scope="col">Completed</th>
+              <th scope="col">Patient</th>
               <th scope="col">Foot type</th>
               <th scope="col">Activity</th>
-              <th scope="col">Pain zones</th>
-              <th scope="col">ID</th>
+              <th scope="col">Pain areas</th>
+              <th scope="col">Intake</th>
             </tr>
           </thead>
           <tbody>
@@ -94,7 +102,7 @@ export default async function AssessmentsPage({
                 <td>{(row.pain_zones ?? []).join(", ") || "—"}</td>
                 <td>
                   <Link href={`/assessments/${row.id}`} prefetch>
-                    <Code>{shortId(row.id)}</Code>
+                    View intake →
                   </Link>
                 </td>
               </tr>
